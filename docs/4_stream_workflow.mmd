@@ -1,0 +1,30 @@
+flowchart TD
+    A[Start] --> B[Stream 1: Data Generation]
+    B --> C[Run Model Tests on Infrastructure]
+    C --> D[Collect Metrics with dstack]
+    D --> E[Save to Parquet Files]
+    
+    E --> F[Stream 2: Dataset Creation]
+    F --> G[Collate Data & Feature Engineering]
+    G --> H[Exploratory Data Analysis]
+    
+    H --> I[Stream 3: Model Training]
+    I --> J[Train Prediction Models]
+    J --> K[Compare Architectures]
+    K --> L[Performance Analysis]
+    
+    H --> M[Stream 4: Feature Analysis]
+    M --> N[SHAP Analysis]
+    N --> O[Feature Selection]
+    
+    L --> P[Model Results]
+    O --> Q[Feature Insights]
+    
+    P --> G
+    Q --> G
+    Q --> I
+    
+    style B fill:#e1f5fe
+    style F fill:#f3e5f5
+    style I fill:#e8f5e8
+    style M fill:#fff3e0
