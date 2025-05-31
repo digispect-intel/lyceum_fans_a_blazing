@@ -5,6 +5,12 @@ import psutil
 import torch
 import os
 from datetime import datetime
+import threading
+import queue
+import subprocess
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
+from utils.model_analysis import extract_advanced_model_features
 
 try:
     import pynvml
@@ -21,6 +27,121 @@ except ImportError:
 except Exception as e:
     PYNVML_AVAILABLE = False
     print(f"pynvml initialization failed: {e}")
+
+def get_detailed_metrics():
+    """Collect advanced system metrics"""
+    metrics = {}
+    
+    # Memory bandwidth estimation
+    metrics.update(measure_memory_bandwidth())
+    
+    # Thermal monitoring
+    metrics.update(get_thermal_metrics())
+    
+    # Power efficiency
+    metrics.update(calculate_power_efficiency())
+    
+    return metrics
+
+def measure_memory_bandwidth():
+    """Estimate memory bandwidth utilization"""
+    try:
+        # Simple memory bandwidth test
+        start_time = time.time()
+        
+        # Create large arrays and measure transfer time
+        size = 100 * 1024 * 1024  # 100MB
+        data = torch.randn(size // 4, dtype=torch.float32)
+        
+        if torch.cuda.is_available():
+            # GPU memory bandwidth
+            gpu_data = data.cuda()
+            torch.cuda.synchronize()
+            gpu_time = time.time() - start_time
+            
+            # Estimate bandwidth (rough)
+            bandwidth_gb_s = (size * 2) / (gpu_time * 1024**3)  # Read + Write
+            
+            return {
+                'gpu_memory_bandwidth_gb_s': bandwidth_gb_s,
+                'memory_transfer_time': gpu_time
+            }
+        else:
+            # CPU memory bandwidth
+            cpu_copy = data.clone()
+            cpu_time = time.time() - start_time
+            bandwidth_gb_s = (size * 2) / (cpu_time * 1024**3)
+            
+            return {
+                'cpu_memory_bandwidth_gb_s': bandwidth_gb_s,
+                'memory_transfer_time': cpu_time
+            }
+    except Exception as e:
+        print(f"Memory bandwidth measurement failed: {e}")
+        return {'memory_bandwidth_gb_s': None}
+
+def get_thermal_metrics():
+    """Monitor thermal behavior"""
+    thermal_data = {}
+    
+    if PYNVML_AVAILABLE and torch.cuda.is_available():
+        try:
+            handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+            
+            # Temperature
+            temp = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
+            
+            # Power state
+            power_state = pynvml.nvmlDeviceGetPowerState(handle)
+            
+            # Clock speeds
+            graphics_clock = pynvml.nvmlDeviceGetClockInfo(handle, pynvml.NVML_CLOCK_GRAPHICS)
+            memory_clock = pynvml.nvmlDeviceGetClockInfo(handle, pynvml.NVML_CLOCK_MEM)
+            
+            thermal_data.update({
+                'gpu_temperature_c': temp,
+                'gpu_power_state': power_state,
+                'gpu_graphics_clock_mhz': graphics_clock,
+                'gpu_memory_clock_mhz': memory_clock,
+                'thermal_throttling_detected': temp > 80  # Simple threshold
+            })
+        except Exception as e:
+            print(f"GPU thermal monitoring failed: {e}")
+    
+    # CPU thermal (if available)
+    try:
+        # Try to read CPU temperature (Linux)
+        if os.path.exists('/sys/class/thermal/thermal_zone0/temp'):
+            with open('/sys/class/thermal/thermal_zone0/temp', 'r') as f:
+                cpu_temp = int(f.read().strip()) / 1000.0
+                thermal_data['cpu_temperature_c'] = cpu_temp
+    except:
+        thermal_data['cpu_temperature_c'] = None
+    
+    return thermal_data
+
+def calculate_power_efficiency():
+    """Calculate performance per watt metrics"""
+    power_data = get_power_metrics()
+    
+    # Get current GPU power
+    gpu_power = power_data.get('gpu_power_watts', 0)
+    
+    if gpu_power and gpu_power > 0:
+        # Estimate CPU power (rough)
+        cpu_usage = psutil.cpu_percent()
+        estimated_cpu_power = (cpu_usage / 100) * 65  # Assume 65W TDP
+        
+        total_power = gpu_power + estimated_cpu_power
+        
+        return {
+            'total_estimated_power_watts': total_power,
+            'estimated_cpu_power_watts': estimated_cpu_power,
+            'power_efficiency_score': 1.0 / total_power if total_power > 0 else 0
+        }
+    
+    return {'total_estimated_power_watts': None, 'power_efficiency_score': None}
+
 
 def extract_model_features(model_name="gpt2"):
     """Extract architectural features from the model"""
@@ -40,6 +161,12 @@ def extract_model_features(model_name="gpt2"):
         'params_per_layer': model.num_parameters() / config.n_layer,
         'hidden_per_head': config.n_embd / config.n_head
     }
+    
+    try:
+        advanced_features = extract_advanced_model_features(model_name)
+        features.update(advanced_features)
+    except Exception as e:
+        print(f"Could not extract advanced features: {e}")
     
     return features, model
 
@@ -171,6 +298,18 @@ def run_single_inference(model, tokenizer, prompt, batch_size, gen_params, devic
     
     return result
 
+def run_single_inference_enhanced(model, tokenizer, prompt, batch_size, gen_params, device):
+    """Enhanced version with detailed metrics"""
+    
+    # Get baseline metrics
+    result = run_single_inference(model, tokenizer, prompt, batch_size, gen_params, device)
+    
+    # Add advanced metrics
+    detailed_metrics = get_detailed_metrics()
+    result.update(detailed_metrics)
+    
+    return result
+
 def run_comprehensive_tests(model, tokenizer, hardware_info):
     """Run tests across multiple parameter combinations"""
     
@@ -238,7 +377,7 @@ The future of artificial intelligence promises even more dramatic changes as res
                     gen_params = {k: v for k, v in gen_config.items() if k != 'name'}
                     
                     try:
-                        result = run_single_inference(model, tokenizer, test_prompt, batch_size, gen_params, device)
+                        result = run_single_inference_enhanced(model, tokenizer, test_prompt, batch_size, gen_params, device)
                         
                         # Add all test configuration info
                         result.update({

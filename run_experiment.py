@@ -112,8 +112,8 @@ def get_model_info_from_path(config_path):
         raise ValueError(f"Config path doesn't match expected structure: {config_path}")
 
 async def wait_for_ssh_window(run_name):
-    """Wait for the SSH window message in logs"""
-    print(f"⏳ Waiting for SSH window to open for {run_name}...")
+    """Wait for dev environment to be ready and experiment to complete"""
+    print(f"⏳ Waiting for dev environment {run_name} to be ready...")
     
     attempt = 1
     while True:
@@ -121,22 +121,23 @@ async def wait_for_ssh_window(run_name):
         success, output = await run_command(f"dstack logs {run_name}", stream_output=False)
         
         if success:
-            print(f"📝 Latest log output:")
-            # Show last 10 lines of logs
-            lines = output.split('\n')
-            for line in lines[-10:]:
-                if line.strip():
-                    print(f"   📄 {line}")
-            
-            if "SSH WINDOW OPEN" in output:
-                print("🚪 SSH window detected! Proceeding with file download...")
+            # For dev environments, look for experiment completion
+            if "Test completed successfully!" in output:
+                print("🎉 Experiment completed! SSH should be available...")
                 break
-        else:
-            print(f"⚠️  Failed to get logs for {run_name}")
+            elif "To open in VS Code Desktop, use this link:" in output:
+                print("🚪 Dev environment ready! Checking if experiment completed...")
+                # Environment is ready, but experiment might still be running
+                if "Test completed successfully!" in output:
+                    break
         
         print(f"⏰ Waiting 10 seconds before next check...")
         await asyncio.sleep(10)
         attempt += 1
+        
+        if attempt > 60:  # 10 minute timeout
+            print("⏰ Timeout - proceeding with download attempt...")
+            break
 
 async def download_file_via_dstack_automation(run_name, remote_path, local_path):
     """Fully automated file download using dstack attach + scp"""
