@@ -1,0 +1,13 @@
+type: task
+name: gpt2-cpu-test-aks
+
+python: "3.11"
+
+commands:
+  - pip install transformers torch pandas pyarrow psutil
+  - python gpt2_test.py
+
+resources:
+  cpu: 8..
+  memory: 8GB..
+  disk: 50GB
