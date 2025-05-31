@@ -1,0 +1,13 @@
+type: task
+name: download-results
+
+python: "3.11"
+
+commands:
+  - ls -la /results
+  - cp /results/*.parquet ./
+  - ls -la ./
+
+volumes:
+  - name: hackathon-results
+    path: /results

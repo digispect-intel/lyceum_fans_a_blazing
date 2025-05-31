@@ -1,0 +1,13 @@
+type: task
+name: gpt2-cpu2-mem8-test
+
+python: "3.11"
+
+commands:
+  - pip install transformers torch pandas pyarrow psutil pynvml nvidia-ml-py
+  - python models/text_generation/gpt2/gpt2_test.py
+
+resources:
+  cpu: 2
+  memory: 8GB
+  disk: 50GB

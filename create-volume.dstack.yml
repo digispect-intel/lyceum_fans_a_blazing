@@ -1,0 +1,5 @@
+type: volume
+name: hackathon-results
+backend: gcp
+region: europe-west1
+size: 10GB
