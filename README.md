@@ -99,8 +99,6 @@ dstack init
 
 ## 4-Stream Workflow
 
-![4-Stream Workflow Diagram](docs/4_stream_workflow.png)
-
 1. **Data Generation** - Run model tests, collect metrics via dstack
 2. **Dataset Creation** - Feature engineering, EDA on parquet files
 3. **Model Training** - Train prediction models, compare architectures  
