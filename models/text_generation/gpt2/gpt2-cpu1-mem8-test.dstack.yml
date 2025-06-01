@@ -1,0 +1,17 @@
+type: dev-environment
+name: gpt2-cpu1-mem8-test
+ide: vscode
+
+python: "3.11"
+
+init:
+- pip install transformers torch pandas pyarrow psutil pynvml nvidia-ml-py
+- python models/text_generation/gpt2/gpt2_test.py
+
+resources:
+  cpu: 1
+  memory: 8GB
+  disk: 50GB
+
+# python run_experiment.py models/text_generation/gpt2/gpt2-cpu1-mem8-test.dstack.yml
+# scp gpt2-cpu1-mem8-test:/workflow/results.parquet ./data/text_generation/gpt2/gpt2_cpu1-mem8_results.parquet

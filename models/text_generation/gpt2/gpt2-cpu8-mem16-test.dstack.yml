@@ -13,3 +13,6 @@ resources:
   cpu: 8
   memory: 16GB
   disk: 50GB
+
+# python run_experiment.py models/text_generation/gpt2/gpt2-cpu8-mem16-test.dstack.yml
+# scp gpt2-cpu8-mem16-test:/workflow/results.parquet ./data/text_generation/gpt2/gpt2_cpu8-mem16_results.parquet

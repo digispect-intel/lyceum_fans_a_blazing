@@ -1,13 +1,18 @@
-type: task
-name: gpt2-cpu2-mem8-test
+type: dev-environment
+name: gpt2-cpu2-mem8-test-v2
+ide: vscode
 
 python: "3.11"
 
-commands:
-  - pip install transformers torch pandas pyarrow psutil pynvml nvidia-ml-py
-  - python models/text_generation/gpt2/gpt2_test.py
+init:
+- pip install transformers torch pandas pyarrow psutil pynvml nvidia-ml-py
+- python models/text_generation/gpt2/gpt2_test.py
 
 resources:
   cpu: 2
   memory: 8GB
   disk: 50GB
+
+# python run_experiment.py models/text_generation/gpt2/gpt2-cpu2-mem8-test.dstack.yml
+# dstack apply -f models/text_generation/gpt2/gpt2-cpu2-mem8-test.dstack.yml
+# scp gpt2-cpu2-mem8-test:/workflow/results.parquet ./data/text_generation/gpt2/gpt2_cpu2-mem8_results.parquet

@@ -147,7 +147,10 @@ def extract_model_features(model_name="gpt2"):
     """Extract architectural features from the model"""
     config = GPT2Config.from_pretrained(model_name)
     model = GPT2LMHeadModel.from_pretrained(model_name)
-    
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+    print(f"Model loaded on device: {device}")
     features = {
         'model_name': model_name,
         'parameter_count': model.num_parameters(),
@@ -241,7 +244,8 @@ def get_hardware_info():
 
 def run_single_inference(model, tokenizer, prompt, batch_size, gen_params, device):
     """Run a single inference and collect metrics including power"""
-    
+    device = next(model.parameters()).device
+
     # Pre-inference metrics
     power_before = get_power_metrics()
     start_time = time.time()
@@ -342,8 +346,12 @@ The future of artificial intelligence promises even more dramatic changes as res
     ]
 
     batch_sizes = [1, 2, 4]
+
+    model_device = next(model.parameters()).device
+    print(f"Model is on device: {model_device}")
     
-    device = torch.device(hardware_info['device'])
+    # Use model's device, not hardware_info device
+    device = model_device
     all_results = []
     
     # Calculate total combinations
