@@ -3,6 +3,7 @@ data/
 results/
 *.parquet
 *.csv
+*.png 
 
 # Python cache only
 __pycache__/
